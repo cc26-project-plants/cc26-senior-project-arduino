@@ -1,14 +1,42 @@
+//Sensor pins...
+//Analog pins
+int lightPin = A0;
+int soilMoisurePin = A2;
+//Digital pins
+int tempHumidPin = 2;
+int lightPowerPin = 4;
+int pumpPowerPin = 6;
 
-int temperatureInput = 0;
-int humidityInput = 0;
-int mistureInput = 0;
+
+//sensor reading variables
+int lightData;
+int soilMoistureData;
+unsigned int minLight = 65536;
+unsigned int maxLight = 0;
+float miniTemp = 5505;
+float maxTemp = 0;
+float minHumid = 100;
+float maxHumid = 0;
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println("Arduino running on ATmega2560");
+
+  //Create the object that will interface with the temp/humid sensor
+  //rht.begin(tempHumidPin);
+
+  //set pin modes
+  pinMode(lightPin, INPUT);
+  pinMode(soilMoisurePin, INPUT);
 }
 
 void loop() {
-  // get and modify data 
+  // photoresistor code
+  //Get light reading
+  lightData = analogRead(lightPin);
+  soilMoistureData = analogRead(soilMoisurePin);
+  Serial.print("Light Level:");
+  Serial.println(lightData);
+  Serial.print("Water Level:");
+  Serial.println(soilMoistureData);
+  delay(1000);
 }
