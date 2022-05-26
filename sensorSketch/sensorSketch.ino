@@ -1,29 +1,36 @@
 
-//Sensor pins
-//Analog pins
+// Analog pins
 int lightPin = A0;
 int soilWaterPin = A2;
 
-//Digital pins
-int tempHumidPin = 2;
-int pumpPowerPin = 4;
+// Digital pins
+//int tempHumidPin = 2;
+//int pumpPowerPin = 4;
 int ledPin = 13;
 
-//sensor reading variables
+// Humidity Temperature pin
+#include "DHT.h"
+#include "Adafruit_Sensor.h"
+#define DHTPIN 2
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+// sensor reading variables
 int lightLevel;
 int soilWaterLevel;
-unsigned int minLight = 65536;
-unsigned int maxLight = 0;
-float miniTemp = 5505;
-float maxTemp = 0;
-float minHumid = 100;
-float maxHumid = 0;
+float humidity;
+float temperature;
+
+// unsigned int minLight = 65536;
+//unsigned int maxLight = 0;
+//float miniTemp = 5505;
+//float maxTemp = 0;
+//float minHumid = 100;
+//float maxHumid = 0;
 
 void setup() {
   Serial.begin(115200);
-
-  //Create the object that will interface with the temp/humid sensor
-  //rht.begin(tempHumidPin);
+  dht.begin();
 
   //set pin modes
   pinMode(lightPin, INPUT);
@@ -35,6 +42,7 @@ void loop() {
   readLightLevel();
   writeLedBrightness();
   readSoilWaterLevel();
+  readHumidityTemperature();
   
   Serial.println();
   delay(1000);
@@ -42,14 +50,26 @@ void loop() {
 
 void readLightLevel() {
   lightLevel = analogRead(lightPin);
-  Serial.print("Light Level:");
-  Serial.println(lightLevel);
+  
+//  Serial.print("Light Level: ");
+//  Serial.println(lightLevel);
 }
 
 void readSoilWaterLevel() {
   soilWaterLevel = analogRead(soilWaterPin);
-  Serial.print("Soil Water Level:");
-  Serial.println(soilWaterLevel);
+  
+//  Serial.print("Soil Water Level: ");
+//  Serial.println(soilWaterLevel);
+}
+
+void readHumidityTemperature() {
+  humidity = dht.readHumidity();
+  temperature = dht.readTemperature();
+  
+  Serial.print("Humidity: ");
+  Serial.println(humidity);
+  Serial.print("Temperature: ");
+  Serial.println(temperature);
 }
 
 void writeLedBrightness() {
@@ -59,8 +79,9 @@ void writeLedBrightness() {
   int ledStep = 255 / (dark - bright);
   int input = lightLevel > dark ? dark : lightLevel < bright ? bright : lightLevel;
 
-  int brightness = 255 - ledStep * (input - bright);
+  int brightness = ledStep * (input - bright);
   analogWrite(ledPin, brightness);
-  Serial.print("LED Brightness:");
-  Serial.println(brightness);
+  
+//  Serial.print("LED Brightness: ");
+//  Serial.println(brightness);
 }
