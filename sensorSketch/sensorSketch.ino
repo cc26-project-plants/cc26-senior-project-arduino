@@ -11,7 +11,6 @@ int ledPin = 13;
 // Humidity Temperature pin
 #include "DHT.h";
 //#include "DHT_U.h";
-//#include "Adafruit_Sensor.h";
 #define DHTPIN 2
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
