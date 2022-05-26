@@ -19,8 +19,8 @@ DHT dht(DHTPIN, DHTTYPE);
 // sensor reading variables
 int lightLevel;
 int soilWaterLevel;
-float humidity;
-float temperature;
+int humidity;
+int temperature;
 
 // unsigned int minLight = 65536;
 //unsigned int maxLight = 0;
@@ -64,8 +64,8 @@ void readSoilWaterLevel() {
 }
 
 void readHumidityTemperature() {
-  humidity = dht.readHumidity();
-  temperature = dht.readTemperature();
+  humidity = dht.readHumidity()  * 10;
+  temperature = dht.readTemperature()  * 10;
   
   Serial.print("Humidity: ");
   Serial.println(humidity);
