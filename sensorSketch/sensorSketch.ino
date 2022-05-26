@@ -1,16 +1,17 @@
-//Sensor pins...
+
+//Sensor pins
 //Analog pins
 int lightPin = A0;
-int soilMoisurePin = A2;
+int soilWaterPin = A2;
+
 //Digital pins
 int tempHumidPin = 2;
-int lightPowerPin = 4;
-int pumpPowerPin = 6;
-
+int pumpPowerPin = 4;
+int ledPin = 13;
 
 //sensor reading variables
-int lightData;
-int soilMoistureData;
+int lightLevel;
+int soilWaterLevel;
 unsigned int minLight = 65536;
 unsigned int maxLight = 0;
 float miniTemp = 5505;
@@ -26,17 +27,40 @@ void setup() {
 
   //set pin modes
   pinMode(lightPin, INPUT);
-  pinMode(soilMoisurePin, INPUT);
+  pinMode(soilWaterPin, INPUT);
+  pinMode(ledPin, OUTPUT);
 }
 
 void loop() {
-  // photoresistor code
-  //Get light reading
-  lightData = analogRead(lightPin);
-  soilMoistureData = analogRead(soilMoisurePin);
-  Serial.print("Light Level:");
-  Serial.println(lightData);
-  Serial.print("Water Level:");
-  Serial.println(soilMoistureData);
+  readLightLevel();
+  writeLedBrightness();
+  readSoilWaterLevel();
+  
+  Serial.println();
   delay(1000);
+}
+
+void readLightLevel() {
+  lightLevel = analogRead(lightPin);
+  Serial.print("Light Level:");
+  Serial.println(lightLevel);
+}
+
+void readSoilWaterLevel() {
+  soilWaterLevel = analogRead(soilWaterPin);
+  Serial.print("Soil Water Level:");
+  Serial.println(soilWaterLevel);
+}
+
+void writeLedBrightness() {
+  // LED 0 - 255
+  int bright = 950;
+  int dark = 1000;
+  int ledStep = 255 / (dark - bright);
+  int input = lightLevel > dark ? dark : lightLevel < bright ? bright : lightLevel;
+
+  int brightness = 255 - ledStep * (input - bright);
+  analogWrite(ledPin, brightness);
+  Serial.print("LED Brightness:");
+  Serial.println(brightness);
 }
