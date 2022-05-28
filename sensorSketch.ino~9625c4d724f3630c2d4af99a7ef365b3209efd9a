@@ -19,8 +19,7 @@ float minHumid = 100;
 float maxHumid = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   //Create the object that will interface with the temp/humid sensor
   //rht.begin(tempHumidPin);
