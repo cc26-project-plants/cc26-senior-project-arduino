@@ -2,10 +2,9 @@
   
 **Project Plants**  
 PLANT HOTEL🌿  
-Users – sign up/ user authentication  
+Users – log in/user authentication  
 Plants – plant profile   
 Hardware – data   
-Features: Add friend for plant authentication - friends water plants for you  
   
   
 ## Getting Started: Arduino  
