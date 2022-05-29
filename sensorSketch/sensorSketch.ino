@@ -4,11 +4,10 @@ int lightPin = A0;
 int soilWaterPin = A2;
 
 // Digital pins
-//int tempHumidPin = 2;
-//int pumpPowerPin = 4;
+int pumpPowerPin = 4;
 int ledPin = 13;
 
-// Humidity Temperature pin
+// Humidity/temperature pin
 #include "DHT.h";
 //#include "DHT_U.h";
 //#include "Adafruit_Sensor.h";
@@ -16,13 +15,13 @@ int ledPin = 13;
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
-// sensor reading variables
+// Sensor reading variables
 int lightLevel;
 int soilWaterLevel;
-float humidity;
-float temperature;
+int humidity;
+int temperature;
 
-// unsigned int minLight = 65536;
+//unsigned int minLight = 65536;
 //unsigned int maxLight = 0;
 //float miniTemp = 5505;
 //float maxTemp = 0;
@@ -42,13 +41,16 @@ void setup() {
 void loop() {
   readLightLevel();
   writeLedBrightness();
+
   readSoilWaterLevel();
+
   readHumidityTemperature();
   
   Serial.println();
   delay(1000);
 }
 
+// Functions
 void readLightLevel() {
   lightLevel = analogRead(lightPin);
   
@@ -64,8 +66,8 @@ void readSoilWaterLevel() {
 }
 
 void readHumidityTemperature() {
-  humidity = dht.readHumidity();
-  temperature = dht.readTemperature();
+  humidity = dht.readHumidity()  * 10;
+  temperature = dht.readTemperature()  * 10;
   
   Serial.print("Humidity: ");
   Serial.println(humidity);
@@ -78,9 +80,9 @@ void writeLedBrightness() {
   int bright = 950;
   int dark = 1000;
   int ledStep = 255 / (dark - bright);
-  int input = lightLevel > dark ? dark : lightLevel < bright ? bright : lightLevel;
+  int lightInput = lightLevel > dark ? dark : lightLevel < bright ? bright : lightLevel;
 
-  int brightness = ledStep * (input - bright);
+  int brightness = ledStep * (lightInput - bright);
   analogWrite(ledPin, brightness);
   
 //  Serial.print("LED Brightness: ");
