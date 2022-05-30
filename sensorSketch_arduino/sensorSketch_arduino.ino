@@ -21,9 +21,16 @@ int soilMoistureData;
 unsigned int minLight = 20;
 unsigned int maxLight = 1013;
 
+//consts
+auto& esp = Serial1;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+//  esp.begin(9600);
+  Serial1.begin(9600);
+  Serial.flush();
+  Serial1.flush();
   dht.begin();
 
   //Create the object that will interface with the temp/humid sensor
@@ -36,6 +43,21 @@ void setup() {
 }
 
 void loop() {
+  //Serial Comminication
+  Serial1.write(77);
+
+//  // read from port 1, send to port 0:
+//  if (esp.available()) {
+//    int inByte = esp.read();
+//    Serial.write(inByte);
+//  }
+//
+//  // read from port 0, send to port 1:
+//  if (Serial.available()) {
+//    int inByte = Serial.read();
+//    esp.write("Hello from the other side");
+//  }
+  
   // Get light level
   printLight();
   delay(1000);

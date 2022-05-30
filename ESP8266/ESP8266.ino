@@ -1,75 +1,79 @@
 //library
+#include <ESP8266WiFi.h>
 #include "DHT.h"
-#define DHTPIN 2
+#define DHTPIN D2
 #define DHTTYPE DHT22
-
 DHT dht(DHTPIN, DHTTYPE);
 
-//Sensor pins...
-//Analog pins
-int lightPin = A0;
-int soilMoisurePin = A2;
-////Digital pins
-int tempHumidPin = 2;
-//int lightPowerPin = 4;
-//int pumpPowerPin = 6;
 
 
-//sensor reading variables
-int lightData;
-int soilMoistureData;
-unsigned int minLight = 20;
-unsigned int maxLight = 1013;
+// Set WiFi credentials
+#define WIFI_SSID "codechrysalis_2.4ghz"
+#define WIFI_PASS "foreverbekind"
+
+auto& arduino = Serial1;
 
 void setup() {
-  // put your setup code here, to run once:
+  // Setup serial port
   Serial.begin(9600);
+//  arduino.begin(9600);
+  Serial.println();
+  
+  // Begin WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+   // Connecting to WiFi...
+  Serial.print("Connecting to ");
+  Serial.print(WIFI_SSID);
+  // Loop continuously while WiFi is not connected
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    waitDelay(200);
+  }
+
+  // Connected to WiFi
+  Serial.println();
+  Serial.print("Connected! IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+
+  //DHT INIT
   dht.begin();
-
-  //Create the object that will interface with the temp/humid sensor
-  //rht.begin(tempHumidPin);
-
-  //set pin modes
-  pinMode(lightPin, INPUT);
-  pinMode(soilMoisurePin, INPUT);
-  pinMode(tempHumidPin, INPUT);
+  delay(2000);
 }
 
 void loop() {
-  // Get light level
-  printLight();
+  Serial.println("Waiting for input");
+  delay(500);
+  waitDelay(100);
+  waitDelay(100);
+  waitDelay(100);
   delay(1000);
 
-  //Get water level
-  printWater();
-  delay(1000);
-//  
-//read humidity
-  printHumid();
-  delay(1000);
-  
-//read temperature as Celsius
-  printTemp();
-  delay(1000);
+  Serial.println("Checking Serial comm");
+  //Try to talk to arduino
+  if (Serial.available() > 0) {
+    // read the incoming byte:
+    int incomingByte = Serial.read();
+
+    // say what you got:
+    Serial.print("I received: ");
+    Serial.println(incomingByte);
+  }
 }
 
-void printLight(){
-  float lightData = analogRead(lightPin);
-  float out = ((lightData + 20) / maxLight) * 100;
-  Serial.print("Light Level:");
-  Serial.println(lightData);
+void waitDelay(int time) {
+  delay(time);
+  Serial.print(".");
+  delay(time);
+  Serial.print(".");
+  delay(time);
+  Serial.print(".");
+  delay(time);
+  Serial.println();
   }
 
-void printWater(){
-  int average;
-  for(int i = 1; i <= 100; i++) {
-   average += analogRead(soilMoisurePin);
-  }
-  Serial.print("Water Level:");
-  Serial.println(analogRead(soilMoisurePin));
-  }
-//
- void printTemp(){
+void printTemp(){
   float tempC = dht.readTemperature();
   if (isnan(tempC)) {
     Serial.println("Failed to read temp from DHT sensor!");
@@ -80,14 +84,13 @@ void printWater(){
     }
   }
 
-  void printHumid(){
-  float humid = dht.readHumidity();
-  if (isnan(humid)) {
-    Serial.println("Failed to read humidity from DHT sensor!");
-  }else {
-    Serial.print("Humidity: ");
-    Serial.print(humid);
-    Serial.println("%");
-    
-    }
-  }
+void printHumid(){
+ float humid = dht.readHumidity();
+ if (isnan(humid)) {
+  Serial.println("Failed to read humidity from DHT sensor!");
+ }else {
+  Serial.print("Humidity: ");
+  Serial.print(humid);
+  Serial.println("%");
+ }
+}
