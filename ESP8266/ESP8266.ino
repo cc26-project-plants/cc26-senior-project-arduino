@@ -1,6 +1,8 @@
 // Library
 #include <ESP8266WiFi.h>
 #include "DHT.h"
+
+// Set temperature humidity sensor
 #define DHTPIN D2
 #define DHTTYPE DHT22
 
@@ -11,9 +13,6 @@
 // Home
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
-
-// Constants *********************************************************
-DHT dht(DHTPIN, DHTTYPE);
 
 // Class *************************************************************
 class Plant;
@@ -72,6 +71,10 @@ public:
   }
 };
 
+// Constants *********************************************************
+DHT dht(DHTPIN, DHTTYPE);
+Plant fakePlant;
+
 // Setup function ****************************************************
 void setup() {
   Serial.begin(9600);
@@ -80,8 +83,6 @@ void setup() {
   setUpWiFi();
 
   dht.begin();
-
-  Plant fakePlant;
   delay(2000);
 }
 
