@@ -30,7 +30,7 @@ void setup() {
 
 void loop() {
   readLightLevel();
- writeLedBrightness();
+  writeLedBrightness();
 
   readSoilWaterLevel();
 

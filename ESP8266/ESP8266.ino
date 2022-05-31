@@ -1,33 +1,33 @@
-//library
+// Library
 #include <ESP8266WiFi.h>
 #include "DHT.h"
 #define DHTPIN D2
 #define DHTTYPE DHT22
 
 // Set WiFi credentials
-//Code Chrysalis
-//#define WIFI_SSID "codechrysalis_2.4ghz"
-//#define WIFI_PASS "foreverbekind"
-//Home
-#define WIFI_SSID "ASUS_D0"
-#define WIFI_PASS "FFFFFFFFFF1"
+// Code Chrysalis
+#define WIFI_SSID "codechrysalis_2.4ghz"
+#define WIFI_PASS "foreverbekind"
+// Home
+// #define WIFI_SSID "ASUS_D0"
+// #define WIFI_PASS "FFFFFFFFFF1"
 
-//Constants *****************************************************
+// Constants *****************************************************
 DHT dht(DHTPIN, DHTTYPE);
 
-//Class creation & object creation (THIS MAY BE WRONG!!)****************************************
+// Class creation & object creation (THIS MAY BE WRONG!!)****************************************
 
-  class Plant {
+class Plant {
   public:
     int soilWaterLevel;
     int lightLevel;
     float humidLevel;
     float temp;
 
-    //methods
-    void updateSoilWaterLevel(int value){
-      soilWaterLevel = value;
-    }
+  //methods
+  void updateSoilWaterLevel(int value) {
+    soilWaterLevel = value;
+  }
 };
 
 Plant fakePlant;
@@ -35,25 +35,22 @@ fakePlant.soilWaterLevel = 1;
 fakePlant.lightLevel = 20;
 fakePlant.humidLevel = 3.0;
 fakePlant.temp = 10.0;
-}
 
-//Setup function ***********************************************
-
+// Setup function ***********************************************
 void setup() {
   // Setup serial port
   Serial.begin(9600);
-//  arduino.begin(9600);
+  // arduino.begin(9600);
   Serial.println();
   
   // Begin WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-   // Connecting to WiFi...
+  // Connect to WiFi
   Serial.print("Connecting to ");
   Serial.print(WIFI_SSID);
   // Loop continuously while WiFi is not connected
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     waitDelay(200);
   }
 
@@ -63,32 +60,29 @@ void setup() {
   Serial.println(WiFi.localIP());
   Serial.println();
 
-  //DHT INIT
+  // DHT init
   dht.begin();
   delay(2000);
+}
 
-//Main program *****************************************************************************
-
+// Main program *****************************************************************************
 void loop() {
-
-  
-  Serial.print("Fake plant Soil water level: ");
+  Serial.print("Fake plant soil water level: ");
   Serial.println(fakePlant.soilWaterLevel);
   delay(2000);
   Serial.println("Updating soil water level...");
   fakePlant.updateSoilWaterLevel(500);
   delay(1000);
-  Serial.print("Fake plant Soil water level is now: ");
+  Serial.print("Fake plant soil water level is now: ");
   Serial.println(fakePlant.soilWaterLevel);
   delay(2000);
 
-  
   Serial.println(analogRead(A0));
   printTemp();
   delay(500);
 }
 
-//Functions **********************************************************************************
+// Functions **********************************************************************************
 void waitDelay(int time) {
   delay(time);
   Serial.print(".");
@@ -98,9 +92,9 @@ void waitDelay(int time) {
   Serial.print(".");
   delay(time);
   Serial.println();
-  }
+}
 
-void printTemp(){
+void printTemp() {
   float tempC = dht.readTemperature();
   if (isnan(tempC)) {
     Serial.println("Failed to read temp from DHT sensor!");
@@ -108,21 +102,20 @@ void printTemp(){
     Serial.print("Temperature: ");
     Serial.print(tempC);
     Serial.println("°C");
-    }
   }
-
-void printHumid(){
- float humid = dht.readHumidity();
- if (isnan(humid)) {
-  Serial.println("Failed to read humidity from DHT sensor!");
- }else {
-  Serial.print("Humidity: ");
-  Serial.print(humid);
-  Serial.println("%");
- }
 }
 
-void updateLight(){
-   
-  
- }
+void printHumid() {
+  float humid = dht.readHumidity();
+  if (isnan(humid)) {
+    Serial.println("Failed to read humidity from DHT sensor!");
+  } else {
+    Serial.print("Humidity: ");
+    Serial.print(humid);
+    Serial.println("%");
+  }
+}
+
+void updateLight() {
+  // 
+}
