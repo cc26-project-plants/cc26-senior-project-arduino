@@ -1,9 +1,7 @@
 //library
+#include <ArduinoJson.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
-#include "DHT.h"
-#define DHTPIN D2
-#define DHTTYPE DHT22
-
 // Set WiFi credentials
 //Code Chrysalis
 //#define WIFI_SSID "codechrysalis_2.4ghz"
@@ -12,10 +10,18 @@
 #define WIFI_SSID "ASUS_D0"
 #define WIFI_PASS "FFFFFFFFFF1"
 
-//Constants *****************************************************
+//DHT Sensor
+#include "DHT.h"
+#define DHTPIN D2
+#define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
-//Class creation & object creation (THIS MAY BE WRONG!!)****************************************
+//Wifi Client *****************************************************
+WiFiClient client;
+//HTTP Request Client
+HTTPClient http;
+
+//Class creation & object creation ****************************************
 class Plant;
 class Plant {
 public:
@@ -83,6 +89,7 @@ public:
   
 };
 
+//Declare instance of plant class
 Plant fakePlant;
 
 
@@ -90,9 +97,7 @@ Plant fakePlant;
 
 void setup() {
   // Setup serial port
-  Serial.begin(9600);
-//  arduino.begin(9600);
-  Serial.println();
+  Serial.begin(115200);
   
   // Begin WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -117,16 +122,20 @@ void setup() {
   delay(2000);
 }
 //Main program *****************************************************************************
+//******************************************************************************************
 
 void loop() {
   fakePlant.updateAll();
   fakePlant.printAll();
   waitDelay(1000);
 
-  Serial.println("TEST");
+  Serial.println("Sending post request...");
+  postRequest();
+//Delay for 1 hour
+  delay(3600000);
 }
 
-//Functions **********************************************************************************
+//Functions **********************************************************
 void waitDelay(int time) {
   delay(time);
   Serial.print(".");
@@ -137,3 +146,30 @@ void waitDelay(int time) {
   delay(time);
   Serial.println();
   }
+
+void postRequest(){
+  String jString = "{\"soilWaterLevel\":" + String(fakePlant.soilWaterLevel) + ",\"lightLevel\":" + String(fakePlant.lightLevel) + ",\"humidityLevel\":" + String(fakePlant.humidityLevel) + ",\"temperature\":" + String(fakePlant.temperature) + "}";
+  
+  Serial.print("JSON string to be sent");
+  Serial.println(jString);
+  
+  http.begin(client, "http://happa-26-backend.an.r.appspot.com/plantStats/wdNtSRStxaQU9gc2QWM7");
+  http.addHeader("Content-Type", "application/json");
+
+  int httpCode = http.POST(jString);
+  if (httpCode > 0) {
+      // HTTP header has been send and Server response header has been handled
+      Serial.printf("[HTTP] POST... code: %d\n", httpCode);
+
+      // file found at server
+      if (httpCode == HTTP_CODE_OK) {
+        const String& payload = http.getString();
+        Serial.println("received payload:\n<<");
+        Serial.println(payload);
+        Serial.println(">>");
+      }
+    } else {
+      Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+  http.end();
+}
