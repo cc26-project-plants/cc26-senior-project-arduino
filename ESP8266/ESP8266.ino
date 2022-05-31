@@ -12,11 +12,14 @@
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
 
-// Constants *****************************************************
+// Constants ********************************************************************************
 DHT dht(DHTPIN, DHTTYPE);
+float lightData;
+float soilWaterData;
+float tempC;
+float humid;
 
-// Class creation & object creation (THIS MAY BE WRONG!!)****************************************
-
+// Class creation & object creation (THIS MAY BE WRONG!!)************************************
 class Plant {
   public:
     int soilWaterLevel;
@@ -24,7 +27,7 @@ class Plant {
     float humidLevel;
     float temp;
 
-  //methods
+  // Methods
   void updateSoilWaterLevel(int value) {
     soilWaterLevel = value;
   }
@@ -36,28 +39,14 @@ fakePlant.lightLevel = 20;
 fakePlant.humidLevel = 3.0;
 fakePlant.temp = 10.0;
 
-// Setup function ***********************************************
+// Setup function ***************************************************************************
 void setup() {
-  // Setup serial port
   Serial.begin(9600);
-  // arduino.begin(9600);
   Serial.println();
-  
+
   // Begin WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  // Connect to WiFi
-  Serial.print("Connecting to ");
-  Serial.print(WIFI_SSID);
-  // Loop continuously while WiFi is not connected
-  while (WiFi.status() != WL_CONNECTED) {
-    waitDelay(200);
-  }
-
-  // Connected to WiFi
-  Serial.println();
-  Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
+  setUpWiFi();
   Serial.println();
 
   // DHT init
@@ -78,11 +67,23 @@ void loop() {
   delay(2000);
 
   Serial.println(analogRead(A0));
-  printTemp();
+  readTemp();
   delay(500);
 }
 
-// Functions **********************************************************************************
+// Functions ********************************************************************************
+void setUpWiFi() {
+  Serial.print("Connecting to ");
+  Serial.println(WIFI_SSID);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    waitDelay(200);
+  }
+
+  Serial.print("Connected! IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
 void waitDelay(int time) {
   delay(time);
   Serial.print(".");
@@ -94,8 +95,12 @@ void waitDelay(int time) {
   Serial.println();
 }
 
-void printTemp() {
-  float tempC = dht.readTemperature();
+void updateLight() {
+  // 
+}
+
+void readTemp() {
+  tempC = dht.readTemperature();
   if (isnan(tempC)) {
     Serial.println("Failed to read temp from DHT sensor!");
   } else {
@@ -105,8 +110,8 @@ void printTemp() {
   }
 }
 
-void printHumid() {
-  float humid = dht.readHumidity();
+void readHumid() {
+  humid = dht.readHumidity();
   if (isnan(humid)) {
     Serial.println("Failed to read humidity from DHT sensor!");
   } else {
@@ -114,8 +119,4 @@ void printHumid() {
     Serial.print(humid);
     Serial.println("%");
   }
-}
-
-void updateLight() {
-  // 
 }
