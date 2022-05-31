@@ -16,26 +16,75 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 //Class creation & object creation (THIS MAY BE WRONG!!)****************************************
+class Plant;
+class Plant {
+public:
+  int soilWaterLevel = 0;
+  int lightLevel = 0;
+  float humidityLevel = 0.0;
+  float temperature = 0.0;
 
-  class Plant {
-  public:
-    int soilWaterLevel;
-    int lightLevel;
-    float humidLevel;
-    float temp;
+//methods *****************************************
+//Soil Water Sensor **********************
+  void updateSoilWaterLevel(int value){
+    soilWaterLevel = value;
+  }
+  int getSoilWaterLevel(){
+  return soilWaterLevel;  
+  }
+  
+//Light Sensor **********************
+  void updateLightLevel(){
+    lightLevel = analogRead(A0);
+  }
+  int getLightLevel(){
+  return lightLevel;  
+  }
 
-    //methods
-    void updateSoilWaterLevel(int value){
-      soilWaterLevel = value;
-    }
+//Humidity Sensor **********************
+  void updateHumidityLevel(){
+    humidityLevel = dht.readHumidity();
+  }
+  int getHumidityLevel(){
+  return humidityLevel;  
+  }
+
+//temp Sensor **********************
+  void updateTemperature(){
+    temperature = dht.readTemperature();
+  }
+  int getTemperature(){
+  return temperature;  
+  }
+
+//General methods *****************************
+  void printAll(){
+    Serial.print("Light Level: ");
+    Serial.println(lightLevel);
+
+    Serial.print("Soil Water Level: ");
+    Serial.println(soilWaterLevel);
+
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println("~C");
+
+    Serial.print("Humidity: ");
+    Serial.print(temperature);
+    Serial.println("%");
+  }
+
+  void updateAll(){
+      updateSoilWaterLevel(333);
+      updateLightLevel();
+      updateHumidityLevel();
+      updateTemperature();
+  }
+  
 };
 
 Plant fakePlant;
-fakePlant.soilWaterLevel = 1;
-fakePlant.lightLevel = 20;
-fakePlant.humidLevel = 3.0;
-fakePlant.temp = 10.0;
-}
+
 
 //Setup function ***********************************************
 
@@ -66,26 +115,15 @@ void setup() {
   //DHT INIT
   dht.begin();
   delay(2000);
-
+}
 //Main program *****************************************************************************
 
 void loop() {
+  fakePlant.updateAll();
+  fakePlant.printAll();
+  waitDelay(1000);
 
-  
-  Serial.print("Fake plant Soil water level: ");
-  Serial.println(fakePlant.soilWaterLevel);
-  delay(2000);
-  Serial.println("Updating soil water level...");
-  fakePlant.updateSoilWaterLevel(500);
-  delay(1000);
-  Serial.print("Fake plant Soil water level is now: ");
-  Serial.println(fakePlant.soilWaterLevel);
-  delay(2000);
-
-  
-  Serial.println(analogRead(A0));
-  printTemp();
-  delay(500);
+  Serial.println("TEST");
 }
 
 //Functions **********************************************************************************
@@ -99,30 +137,3 @@ void waitDelay(int time) {
   delay(time);
   Serial.println();
   }
-
-void printTemp(){
-  float tempC = dht.readTemperature();
-  if (isnan(tempC)) {
-    Serial.println("Failed to read temp from DHT sensor!");
-  } else {
-    Serial.print("Temperature: ");
-    Serial.print(tempC);
-    Serial.println("°C");
-    }
-  }
-
-void printHumid(){
- float humid = dht.readHumidity();
- if (isnan(humid)) {
-  Serial.println("Failed to read humidity from DHT sensor!");
- }else {
-  Serial.print("Humidity: ");
-  Serial.print(humid);
-  Serial.println("%");
- }
-}
-
-void updateLight(){
-   
-  
- }
