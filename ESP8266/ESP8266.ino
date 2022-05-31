@@ -12,76 +12,96 @@
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
 
-// Constants ********************************************************************************
+// Constants *********************************************************
 DHT dht(DHTPIN, DHTTYPE);
-float lightData;
-float soilWaterData;
-float tempC;
-float humid;
 
-// Class creation & object creation (THIS MAY BE WRONG!!)************************************
+// Class *************************************************************
+class Plant;
 class Plant {
-  public:
-    int soilWaterLevel;
-    int lightLevel;
-    float humidLevel;
-    float temp;
+public:
+  int lightLevel = 0;
+  int soilWaterLevel = 0;
+  float temperature = 0.0;
+  float humidityLevel = 0.0;
 
-  // Methods
+  // Light Sensor *************************
+  void updateLightLevel() {
+    lightLevel = analogRead(A0);
+  }
+  int getLightLevel() {
+    return lightLevel;  
+  }
+
+  // Soil Water Sensor ********************
   void updateSoilWaterLevel(int value) {
     soilWaterLevel = value;
   }
+  int getSoilWaterLevel() {
+    return soilWaterLevel;  
+  }
+
+  // Temperature Sensor *******************
+  void updateTemperature() {
+    temperature = dht.readTemperature();
+  }
+  int getTemperature() {
+    return temperature;  
+  }
+
+  // Humidity Sensor **********************
+  void updateHumidityLevel() {
+    humidityLevel = dht.readHumidity();
+  }
+  int getHumidityLevel() {
+    return humidityLevel;  
+  }
+
+  // General methods **********************
+  void updateAll() {
+    updateSoilWaterLevel(333);
+    updateLightLevel();
+    updateHumidityLevel();
+    updateTemperature();
+  }
+
+  void printAll() {
+    Serial.println("Light Level: " + lightLevel);
+    Serial.println("Soil Water Level: " + soilWaterLevel);
+    Serial.println("Temperature: "+ temperature + "~C");
+    Serial.println("Humidity: " + temperature + "%");
+  }
 };
 
-Plant fakePlant;
-fakePlant.soilWaterLevel = 1;
-fakePlant.lightLevel = 20;
-fakePlant.humidLevel = 3.0;
-fakePlant.temp = 10.0;
-
-// Setup function ***************************************************************************
+// Setup function ****************************************************
 void setup() {
   Serial.begin(9600);
-  Serial.println();
 
-  // Begin WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   setUpWiFi();
-  Serial.println();
 
-  // DHT init
   dht.begin();
+
+  Plant fakePlant;
   delay(2000);
 }
 
-// Main program *****************************************************************************
+// Main program ******************************************************
 void loop() {
-  Serial.print("Fake plant soil water level: ");
-  Serial.println(fakePlant.soilWaterLevel);
-  delay(2000);
-  Serial.println("Updating soil water level...");
-  fakePlant.updateSoilWaterLevel(500);
-  delay(1000);
-  Serial.print("Fake plant soil water level is now: ");
-  Serial.println(fakePlant.soilWaterLevel);
-  delay(2000);
+  fakePlant.updateAll();
+  fakePlant.printAll();
+  waitDelay(1000);
 
-  Serial.println(analogRead(A0));
-  readTemp();
-  delay(500);
+  Serial.println("TEST");
 }
 
-// Functions ********************************************************************************
+// Functions *********************************************************
 void setUpWiFi() {
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
+  Serial.println("Connecting to " + WIFI_SSID);
 
   while (WiFi.status() != WL_CONNECTED) {
     waitDelay(200);
   }
-
-  Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println("Connected! IP address: " + WiFi.localIP());
 }
 
 void waitDelay(int time) {
@@ -93,30 +113,4 @@ void waitDelay(int time) {
   Serial.print(".");
   delay(time);
   Serial.println();
-}
-
-void updateLight() {
-  // 
-}
-
-void readTemp() {
-  tempC = dht.readTemperature();
-  if (isnan(tempC)) {
-    Serial.println("Failed to read temp from DHT sensor!");
-  } else {
-    Serial.print("Temperature: ");
-    Serial.print(tempC);
-    Serial.println("°C");
-  }
-}
-
-void readHumid() {
-  humid = dht.readHumidity();
-  if (isnan(humid)) {
-    Serial.println("Failed to read humidity from DHT sensor!");
-  } else {
-    Serial.print("Humidity: ");
-    Serial.print(humid);
-    Serial.println("%");
-  }
 }
