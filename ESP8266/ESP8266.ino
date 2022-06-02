@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 
 // ****************************************************** Fixed values
+// Pins
 #define LED_PIN D2
 #define DHT_PIN D3
 #define PUMP_POWER_PIN D5
@@ -14,6 +15,7 @@
 DHT dht(DHT_PIN, DHTTYPE);
 Adafruit_ADS1115 analogChip;
 
+// WiFi
 // Code Chrysalis
 #define WIFI_SSID "codechrysalis_2.4ghz"
 #define WIFI_PASS "foreverbekind"
@@ -21,10 +23,12 @@ Adafruit_ADS1115 analogChip;
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
 
+// HTTP
 const String URL = "http://happa-26-backend.an.r.appspot.com/plantStats/";
 const String PLANT_ID = "VAlAa3aEtub3qSw7SIjz";  // Thomas: "wdNtSRStxaQU9gc2QWM7"
 
-#define MQTT_SERVER "broker.mqtt-dashboard.com"
+// MQTT
+#define MQTT_SEVER "broker.mqtt-dashboard.com"
 #define TOPIC "wemos"
 #define TIME_BETWEEN_MESSAGES 1000 * 5
 
