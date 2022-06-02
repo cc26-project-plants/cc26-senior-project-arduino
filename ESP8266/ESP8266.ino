@@ -81,7 +81,7 @@ HTTPClient http;
 Plant fakePlant;
 
 String URL = "http://happa-26-backend.an.r.appspot.com/plantStats/";
-String PLANT_ID = "VAlAa3aEtub3qSw7SIjz";
+String PLANT_ID = "VAlAa3aEtub3qSw7SIjz";  // Thoams: "wdNtSRStxaQU9gc2QWM7"
 
 // Setup function ****************************************************
 void setup() {
@@ -143,15 +143,14 @@ void postRequest() {
   http.addHeader("Content-Type", "application/json");
 
   int httpCode = http.POST(jString);
-  if (httpCode > 0) {
-    Serial.printf("[HTTP] POST... code: %d\n", httpCode);
-
-    if (httpCode == HTTP_CODE_OK) {
+  if (httpCode) {
+    Serial.printf("[HTTP] POST status code: %d\n", httpCode);
+    if (httpCode => 200 && httpCode < 300) {
       const String& payload = http.getString();
-      Serial.println("received payload:\n<<" + String(payload) + ">>\n");
+      Serial.println("received payload:\n<<" + payload + ">>\n");
     }
   } else {
-    Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.printf("[HTTP] POST failed. error: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
 }
