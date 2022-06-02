@@ -1,7 +1,13 @@
-#include <ESP8266HTTPClient.h>
-#include <ESP8266WiFi.h>
+#include <string>
 #include <DHT.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
+
+// Fixed values ******************************************************
+#define LIGHTPIN A0
+#define DHTPIN D2
+#define DHTTYPE DHT22
 
 // Code Chrysalis
 #define WIFI_SSID "codechrysalis_2.4ghz"
@@ -10,56 +16,52 @@
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
 
-#define DHTPIN D2
-#define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE);
+#define URL = "http://happa-26-backend.an.r.appspot.com/plantStats/"
+#define PLANT_ID = "VAlAa3aEtub3qSw7SIjz"  // Thomas: "wdNtSRStxaQU9gc2QWM7"
 
 // Class *************************************************************
-class Plant;
 class Plant {
 public:
+  DHT dht(DHTPIN, DHTTYPE);
   int lightLevel = 0;
   int soilWaterLevel = 0;
   float temperature = 0.0;
   float humidityLevel = 0.0;
 
-  // Light Sensor *************************
+  // Update values
   void updateLightLevel() {
-    lightLevel = analogRead(A0);
+    lightLevel = analogRead(LIGHTPIN);
   }
-  
+
+  void updateSoilWaterLevel(int value) {
+    soilWaterLevel = value;
+  }
+
+  void updateTemperature() {
+    temperature = dht.readTemperature();
+  }
+
+  void updateHumidityLevel() {
+    humidityLevel = dht.readHumidity();
+  }
+
+  // Read values
   int getLightLevel() {
     return lightLevel;  
   }
 
-  // Soil Water Sensor ********************
-  void updateSoilWaterLevel(int value) {
-    soilWaterLevel = value;
-  }
-  
   int getSoilWaterLevel() {
     return soilWaterLevel;  
   }
 
-  // Temperature Sensor *******************
-  void updateTemperature() {
-    temperature = dht.readTemperature();
-  }
-  
   int getTemperature() {
     return temperature;  
   }
 
-  // Humidity Sensor **********************
-  void updateHumidityLevel() {
-    humidityLevel = dht.readHumidity();
-  }
-  
   int getHumidityLevel() {
     return humidityLevel;  
   }
 
-  // General methods **********************
   void updateAll() {
     updateSoilWaterLevel(333);
     updateLightLevel();
@@ -75,29 +77,21 @@ public:
   }
 };
 
-// Declare instances/variables *************************************************
-WiFiClient client;
-HTTPClient http;
-Plant fakePlant;
-
-String URL = "http://happa-26-backend.an.r.appspot.com/plantStats/";
-String PLANT_ID = "VAlAa3aEtub3qSw7SIjz";  // Thoams: "wdNtSRStxaQU9gc2QWM7"
-
-// Setup function ****************************************************
+// Main **************************************************************
 void setup() {
-  Serial.begin(115200);
+  Plant plantTest;
+  HTTPClient http;
 
+  Serial.begin(115200);
+  dht.begin();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   setUpWiFi();
-
-  dht.begin();
-  delay(2000);
+  setupHTTP();
 }
 
-// Main program ******************************************************
 void loop() {
-  fakePlant.updateAll();
-  fakePlant.printAll();
+  plantTest.updateAll();
+  plantTest.printAll();
   waitDelay(3000);
 
   postRequest();
@@ -110,14 +104,6 @@ void loop() {
 }
 
 // Functions *********************************************************
-void setUpWiFi() {
-  while (WiFi.status() != WL_CONNECTED) {
-    waitDelay(200);
-  }
-  Serial.print("Wifi connected. IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
 void waitDelay(int time) {
   delay(time);
   Serial.print(".");
@@ -129,20 +115,22 @@ void waitDelay(int time) {
   Serial.println();
 }
 
-void postRequest() {
-  Serial.println("Sending post request...");
-  
-  String jString = "{\"soilWaterLevel\":" + String(fakePlant.soilWaterLevel)
-                   + ",\"lightLevel\":" + String(fakePlant.lightLevel)
-                   + ",\"humidityLevel\":" + String(fakePlant.humidityLevel)
-                   + ",\"temperature\":" + String(fakePlant.temperature)
-                   + "}";
-  Serial.println("JSON string to be sent : " + jString);
-  
+void setUpWiFi() {
+  while (WiFi.status() != WL_CONNECTED) {
+    waitDelay(200);
+  }
+  Serial.print("[Wifi] IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void setupHTTP() {
   http.begin(client, URL + PLANT_ID);
   http.addHeader("Content-Type", "application/json");
+}
 
-  int httpCode = http.POST(jString);
+void postRequest() {
+  int httpCode = sendPostRequest();
+
   if (httpCode) {
     Serial.printf("[HTTP] POST status code: %d\n", httpCode);
     if (httpCode => 200 && httpCode < 300) {
@@ -150,7 +138,24 @@ void postRequest() {
       Serial.println("received payload:\n<<" + payload + ">>\n");
     }
   } else {
-    Serial.printf("[HTTP] POST failed. error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.printf("[HTTP] POST error: %s\n", http.errorToString(httpCode).c_str());
   }
+
   http.end();
+}
+
+string buildJSON() {
+  string sensorData = "{\"soilWaterLevel\":" + String(plantTest.soilWaterLevel)
+                      + ",\"lightLevel\":" + String(plantTest.lightLevel)
+                      + ",\"humidityLevel\":" + String(plantTest.humidityLevel)
+                      + ",\"temperature\":" + String(plantTest.temperature)
+                      + "}";
+  Serial.println("JSON to be sent : " + sensorData);
+  return sensorData;
+}
+
+int sendPostRequest() {
+  string sensorData = buildJSON();
+  int httpCode = http.POST(sensorData);
+  return httpCode;
 }
