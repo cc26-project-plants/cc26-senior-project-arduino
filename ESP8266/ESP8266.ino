@@ -1,25 +1,34 @@
-//library
-#include <ArduinoJson.h>
+//ESP library
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
+
 // Set WiFi credentials
 //Code Chrysalis
 //#define WIFI_SSID "codechrysalis_2.4ghz"
 //#define WIFI_PASS "foreverbekind"
+
 //Home
 #define WIFI_SSID "ASUS_D0"
 #define WIFI_PASS "FFFFFFFFFF1"
 
 //DHT Sensor
 #include "DHT.h"
-#define DHTPIN D2
+#define DHTPIN D3
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+
+//Analog Sensors
+#include <Adafruit_ADS1X15.h>
+Adafruit_ADS1115 analogChip;
 
 //Wifi Client *****************************************************
 WiFiClient client;
 //HTTP Request Client
 HTTPClient http;
+
+//Define pins
+const int pumpPower = D5;
+const int lightPower = D6;
 
 //Class creation & object creation ****************************************
 class Plant;
@@ -33,15 +42,15 @@ public:
 //methods *****************************************
 //Soil Water Sensor **********************
   void updateSoilWaterLevel(int value){
-    soilWaterLevel = value;
+    soilWaterLevel = analogChip.readADC_SingleEnded(1);
   }
   int getSoilWaterLevel(){
-  return soilWaterLevel;  
+    return soilWaterLevel;  
   }
   
 //Light Sensor **********************
   void updateLightLevel(){
-    lightLevel = analogRead(A0);
+    lightLevel = analogChip.readADC_SingleEnded(0);
   }
   int getLightLevel(){
   return lightLevel;  
@@ -120,6 +129,15 @@ void setup() {
   //DHT INIT
   dht.begin();
   delay(2000);
+
+  //ANALOG INIT
+  if (!analogChip.begin()) {
+    Serial.println("Failed to initialize analogChip.");
+    while (1);
+  }
+
+  pinMode(pumpPower, OUTPUT);
+  pinMode(lightPower, OUTPUT);
 }
 //Main program *****************************************************************************
 //******************************************************************************************
@@ -129,10 +147,10 @@ void loop() {
   fakePlant.printAll();
   waitDelay(1000);
 
-  Serial.println("Sending post request...");
-  postRequest();
-//Delay for 1 hour
-  delay(3600000);
+//  Serial.println("Sending post request...");
+//  postRequest();
+////Delay for 1 hour
+//  delay(3600000);
 }
 
 //Functions **********************************************************
