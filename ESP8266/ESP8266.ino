@@ -1,13 +1,14 @@
-#include <string>
 #include <DHT.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <PubSubClient.h>
 #include <ArduinoJson.h>
 
 // Fixed values ******************************************************
 #define LIGHTPIN A0
 #define DHTPIN D2
 #define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
 
 // Code Chrysalis
 #define WIFI_SSID "codechrysalis_2.4ghz"
@@ -16,13 +17,12 @@
 // #define WIFI_SSID "ASUS_D0"
 // #define WIFI_PASS "FFFFFFFFFF1"
 
-#define URL = "http://happa-26-backend.an.r.appspot.com/plantStats/"
-#define PLANT_ID = "VAlAa3aEtub3qSw7SIjz"  // Thomas: "wdNtSRStxaQU9gc2QWM7"
+const String URL = "http://happa-26-backend.an.r.appspot.com/plantStats/";
+const String PLANT_ID = "VAlAa3aEtub3qSw7SIjz";  // Thomas: "wdNtSRStxaQU9gc2QWM7"
 
 // Class *************************************************************
 class Plant {
 public:
-  DHT dht(DHTPIN, DHTTYPE);
   int lightLevel = 0;
   int soilWaterLevel = 0;
   float temperature = 0.0;
@@ -73,15 +73,17 @@ public:
     Serial.println("Light Level: " + String(lightLevel));
     Serial.println("Soil Water Level: " + String(soilWaterLevel));
     Serial.println("Temperature: " + String(temperature) + "~C");
-    Serial.println("Humidity: " + String(temperature) + "%");
+    Serial.println("Humidity: " + String(humidityLevel) + "%");
   }
 };
 
+// Instances *********************************************************
+Plant plantTest;
+WiFiClient client;
+HTTPClient http;
+
 // Main **************************************************************
 void setup() {
-  Plant plantTest;
-  HTTPClient http;
-
   Serial.begin(115200);
   dht.begin();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -94,10 +96,10 @@ void loop() {
   plantTest.printAll();
   waitDelay(3000);
 
-  postRequest();
+  // postRequest();
   
   // Delay for 5 minutes
-  delay(300000);
+  // delay(300000);
   
   // Delay for 1 hour
   // delay(3600000);
@@ -133,7 +135,7 @@ void postRequest() {
 
   if (httpCode) {
     Serial.printf("[HTTP] POST status code: %d\n", httpCode);
-    if (httpCode => 200 && httpCode < 300) {
+    if (httpCode >= 200 && httpCode < 300) {
       const String& payload = http.getString();
       Serial.println("received payload:\n<<" + payload + ">>\n");
     }
@@ -144,8 +146,8 @@ void postRequest() {
   http.end();
 }
 
-string buildJSON() {
-  string sensorData = "{\"soilWaterLevel\":" + String(plantTest.soilWaterLevel)
+String buildJSON() {
+  String sensorData = "{\"soilWaterLevel\":" + String(plantTest.soilWaterLevel)
                       + ",\"lightLevel\":" + String(plantTest.lightLevel)
                       + ",\"humidityLevel\":" + String(plantTest.humidityLevel)
                       + ",\"temperature\":" + String(plantTest.temperature)
@@ -155,7 +157,7 @@ string buildJSON() {
 }
 
 int sendPostRequest() {
-  string sensorData = buildJSON();
+  String sensorData = buildJSON();
   int httpCode = http.POST(sensorData);
   return httpCode;
 }
