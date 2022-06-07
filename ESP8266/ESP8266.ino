@@ -4,12 +4,12 @@
 
 // Set WiFi credentials
 //Code Chrysalis
-//#define WIFI_SSID "codechrysalis_2.4ghz"
-//#define WIFI_PASS "foreverbekind"
+#define WIFI_SSID "codechrysalis_2.4ghz"
+#define WIFI_PASS "foreverbekind"
 
 //Home
-#define WIFI_SSID "ASUS_D0"
-#define WIFI_PASS "FFFFFFFFFF1"
+//#define WIFI_SSID "ASUS_D0"
+//#define WIFI_PASS "FFFFFFFFFF1"
 
 //DHT Sensor
 #include "DHT.h"
@@ -22,15 +22,27 @@ DHT dht(DHTPIN, DHTTYPE);
 Adafruit_ADS1115 analogChip;
 
 //Wifi Client *****************************************************
-WiFiClient client;
+WiFiClient wifiClient;
 //HTTP Request Client
 HTTPClient http;
+
+//MQTT*************************************************************
+#include <PubSubClient.h>
+#define MQTT_SEVER "test.mosquitto.org"
+PubSubClient mqttClient(wifiClient);
+#define TOPIC "cc26/happa/sensors"
+#define TIME_BETWEEN_MESSAGES 1000 * 5
+unsigned long lastMsg = 0;
+#define MSG_BUFFER_SIZE  (50)
+char msg[MSG_BUFFER_SIZE];
+int value = 0;
 
 //Define pins
 const int pumpPower = D5;
 const int lightPower = D6;
 
-//Class creation & object creation ****************************************
+//Class creation & object creation *****************************************************************************************
+//**************************************************************************************************************************
 class Plant;
 class Plant {
 public:
@@ -103,6 +115,7 @@ Plant fakePlant;
 
 
 //Setup function ***********************************************
+//**************************************************************
 
 void setup() {
   // Setup serial port
@@ -136,22 +149,29 @@ void setup() {
     while (1);
   }
 
-  pinMode(pumpPower, OUTPUT);
-  pinMode(lightPower, OUTPUT);
+//  pinMode(pumpPower, OUTPUT);
+//  pinMode(lightPower, OUTPUT);
+//  digitalWrite(pumpPower, LOW);
+//  digitalWrite(pumpPower, LOW);
 }
 //Main program *****************************************************************************
 //******************************************************************************************
 
 void loop() {
+ 
   fakePlant.updateAll();
   fakePlant.printAll();
   waitDelay(1000);
+
 
 //  Serial.println("Sending post request...");
 //  postRequest();
 ////Delay for 1 hour
 //  delay(3600000);
 }
+
+//End main program*************************************************************************************************************
+//*****************************************************************************************************************************
 
 //Functions **********************************************************
 void waitDelay(int time) {
@@ -171,7 +191,7 @@ void postRequest(){
   Serial.print("JSON string to be sent");
   Serial.println(jString);
   
-  http.begin(client, "http://happa-26-backend.an.r.appspot.com/plantStats/wdNtSRStxaQU9gc2QWM7");
+  http.begin(wifiClient, "http://happa-26-backend.an.r.appspot.com/plantStats/wdNtSRStxaQU9gc2QWM7");
   http.addHeader("Content-Type", "application/json");
 
   int httpCode = http.POST(jString);
