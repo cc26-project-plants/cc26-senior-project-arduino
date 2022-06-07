@@ -28,13 +28,8 @@ HTTPClient http;
 
 //MQTT*************************************************************
 #include <PubSubClient.h>
-#define MQTT_SEVER "test.mosquitto.org"
 PubSubClient mqttClient(wifiClient);
 #define TOPIC "thom/happa/test"
-byte* buffer;
-boolean Rflag=false;
-int r_len;
-String cbTopic;
 
 //Define pins
 const int pumpPower = D5;
@@ -96,7 +91,7 @@ public:
     Serial.println("~C");
 
     Serial.print("Humidity: ");
-    Serial.print(temperature);
+    Serial.print(humidityLevel);
     Serial.println("%");
   }
 
@@ -149,7 +144,7 @@ void setup() {
   }
 
   //Connect to MQTT broker
-  mqttClient.setServer("5.196.95.208", 1883);
+  mqttClient.setServer("192.168.10.79", 1883);
   //Set callback function for recieved MQTT messages
   mqttClient.setCallback(mqttCallback);
   //Establish connection
@@ -164,7 +159,7 @@ void setup() {
   } 
   else {
     // connection failed
-    mqttClient.state();
+    Serial.println(mqttClient.state());
     // will provide more information
     // on why it failed.
     Serial.println("Connection failed ");
@@ -184,25 +179,24 @@ void loop() {
   fakePlant.printAll();
   waitDelay(1000);
 
-  if(Rflag)
-  {
-    Serial.print("Message arrived in main loop[");
-    Serial.print(cbTopic);
-    Serial.print("] ");
-    Serial.print("message length =");
-    Serial.print(r_len);
-    //Serial.print(Payload);
-    for (int i=0;i<r_len;i++) {
-      Serial.print((char)buffer[i]);
+  if (mqttClient.connected()){
+    Serial.println("Publishing MQTT to thom/happa/test");
+    mqttClient.publish("thom/happa/test", "Hi Mikako.");
+    waitDelay(200);
+    Serial.println("");
+
+    if (fakePlant.lightLevel > 13000) {
+      mqttClient.publish("light/level", "high");
     }
-    Serial.println();
-    Rflag=false;
+
+    if (fakePlant.lightLevel < 500) {
+      mqttClient.publish("light/level", "low");
+    }
+  }else {
+    Serial.println("Cannot connect");  
   }
 
-  Serial.println("Publishing MQTT to thom/happa/test");
-  mqttClient.publish("thom/happa/test", "Hi Mikako.");
-  waitDelay(200);
-  Serial.println("");
+  mqttClient.loop();
 
 //  Serial.println("Sending post request...");
 //  postRequest();
@@ -252,17 +246,15 @@ void postRequest(){
   http.end();
 }
 
-void mqttCallback(char* topic, byte* payload, unsigned int msgLength){
-  //Payload=[];
-  cbTopic=topic;
-  Rflag=true; //will use in main loop
-  r_len=msgLength; //will use in main loop
-  Serial.print("length message received in callback= ");
-  Serial.println(msgLength);
-  int i=0;
-  for (i;i<msgLength;i++) {
-    buffer[i]=payload[i];
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  String msg = "";
+  for (int i = 0; i < length; i++) {
+    msg = msg + (char)payload[i];
     Serial.print((char)payload[i]);
   }
-  buffer[i]='\0'; //terminate string  
+  Serial.println("");
+  Serial.println(msg);
 }
