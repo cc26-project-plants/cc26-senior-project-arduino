@@ -66,11 +66,11 @@ void readHumidityTemperature() {
 }
 
 void writeLedBrightness() {
-  int bright = 950;
-  int dark = 1000;
-  int ledStep = 255 / (dark - bright);
-  
-  int lightInput = lightLevel > dark ? dark : lightLevel < bright ? bright : lightLevel;
-  int brightness = ledStep * (lightInput - bright);
-  analogWrite(ledPin, brightness);
+  int bright = 1500;
+  int dark = 300;
+  float ledStep = 0.2125;
+
+  int lightInput = lightLevel < dark ? dark : lightLevel > bright ? bright : lightLevel;
+  int brightness = ledStep * (lightInput - dark);
+  analogWrite(LED_PIN, brightness);
 }
