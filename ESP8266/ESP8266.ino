@@ -24,13 +24,17 @@ Adafruit_ADS1115 analogChip;
 // #define WIFI_PASS "FFFFFFFFFF1"
 
 // HTTP
-const String URL = "http://happa-26-backend.an.r.appspot.com/plantStats/";
+const String URL = "https://happa-26-backend.an.r.appspot.com/plantStats/";
 const String PLANT_ID = "LKZvyihQuUbrszjk1h1u";
 
 // MQTT
-#define MQTT_SERVER "192.168.10.79"
+//#define MQTT_SERVER "192.168.10.78"
+#define MQTT_SERVER "https://happa-26-mqtt.an.r.appspot.com"
+
 #define TOPIC_TEST "mikako/happa/test"
-#define TOPIC_SUBSCRIBE "thom/happa/test"
+#define TOPIC_THOMAS "thom/happa/test"
+#define TOPIC_LIGHT "light/request"
+
 #define DEVICE_NAME "Mikako-happa"
 #define TIME_BETWEEN_MESSAGES 1000 * 5
 
@@ -84,8 +88,10 @@ public:
   }
 
   // Change brightness
-  void writeLedBrightness(int input) {
-    int brightness = 255 / 100 * input;
+  void writeLedBrightness(String input) {
+    // int brightness = 255 / 100 * input;
+    int brightness = input == "1" ? 255 : 0;
+
     Serial.println("[sensor] Brightness: " + String(brightness));
     analogWrite(LED_PIN, brightness);
   }
@@ -109,8 +115,8 @@ int value = 0;
 
 // ************************************************************** MAIN
 void setup() {
-  Serial.println("---------- SET UP START ----------");  
   Serial.begin(115200);
+  Serial.println("-------------- SET UP START --------------");  
   
   // Sensors
   pinMode(BUILTIN_LED, OUTPUT);
@@ -131,7 +137,7 @@ void setup() {
   setupMQTT();
   subscribeTopics();
 
-  Serial.println("----------- SET UP END -----------");
+  Serial.println("--------------- SET UP END ---------------");
 }
 
 void loop() {
@@ -146,8 +152,9 @@ void loop() {
   // MQTT
   // message();
   publishMessage();
+  mqttClient.loop();
 
-  waitDelay(2000);
+//  waitDelay(2000);
 }
 
 // ********************************************************* Functions
@@ -229,12 +236,17 @@ void setupMQTT() {
 
 // ************************************************ MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println("[MQTT] message received (" + String(topic) + ")\n");
-  
+  Serial.println("[MQTT] message received from topic: " + String(topic));
+
+  String msg = "";
   for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+    msg += (char)payload[i];
   }
-  Serial.println();
+
+  Serial.println(msg);
+  if (String(topic) == String(TOPIC_LIGHT)) {
+    plantTest.writeLedBrightness(msg);
+  }
 }
 
 void reconnectMQTT() {
@@ -247,8 +259,15 @@ void reconnectMQTT() {
 }
 
 void subscribeTopics() {
-  boolean r = mqttClient.subscribe(TOPIC_SUBSCRIBE);
-  Serial.println("[MQTT] subscribed to: " + String(TOPIC_SUBSCRIBE));
+//  boolean status_test = mqttClient.subscribe(TOPIC_THOMAS);
+  boolean status_light = mqttClient.subscribe(TOPIC_LIGHT);
+  
+  if (status_light) {
+//    Serial.println("[MQTT] subscribed to: " + String(TOPIC_THOMAS));
+    Serial.println("[MQTT] subscribed to: " + String(TOPIC_LIGHT));
+  } else {
+    Serial.println("[MQTT] subscribe failed");
+  }
 }
 
 void publishMessage() {
