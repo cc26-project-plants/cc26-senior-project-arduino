@@ -1,16 +1,17 @@
 //ESP library
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
 #include <millisDelay.h>
 
 // Set WiFi credentials
 //Code Chrysalis
-//#define WIFI_SSID "codechrysalis_2.4ghz"
-//#define WIFI_PASS "foreverbekind"
+#define WIFI_SSID "codechrysalis_2.4ghz"
+#define WIFI_PASS "foreverbekind"
 
 //Home
-#define WIFI_SSID "ASUS_D0"
-#define WIFI_PASS "FFFFFFFFFF1"
+//#define WIFI_SSID "ASUS_D0"
+//#define WIFI_PASS "FFFFFFFFFF1"
 
 //DHT Sensor
 #include "DHT.h"
@@ -32,6 +33,7 @@ HTTPClient http;
 PubSubClient mqttClient(wifiClient);
 #define TOPIC "thom/happa/test"
 
+//Constants********************************************************
 //Define pins
 const int pumpPower = D5;
 const int lightPower = D6;
@@ -111,13 +113,13 @@ public:
   void lightOn(){
     Serial.println("Turning light on...");
     digitalWrite(lightPower, HIGH);
-    mqttClient.publish("light/status", "on");
+    mqttClient.publish("light/GmCI6Z4nf90l6etM4NmL/status", "on");
   }
 
   void lightOff(){
     Serial.println("Turning light off...");
     digitalWrite(lightPower, LOW);
-    mqttClient.publish("light/status", "off");
+    mqttClient.publish("light/GmCI6Z4nf90l6etM4NmL/status", "off");
   }
 
   void water(){
@@ -176,15 +178,18 @@ void setup() {
   //Connect to MQTT broker
   mqttConnect();
 
+  Serial.print("MQTT broker connection: ");
+  Serial.println(mqttClient.connected());
+
   pinMode(pumpPower, OUTPUT);
   pinMode(lightPower, OUTPUT);
   digitalWrite(lightPower, LOW);
-//  digitalWrite(pumpPower, LOW);
-//  digitalWrite(pumpPower, LOW);
-  postAllSensorDelay.start(1000 * 30);
+  digitalWrite(pumpPower, LOW);
+  postAllSensorDelay.start(1000);
   printPlantDelay.start(1000);
   autoWaterDelay.start(1000);
   mqttConnectDelay.start(100);
+
 }
 //Main program *****************************************************************************
 //******************************************************************************************
@@ -203,7 +208,7 @@ void loop() {
     fakePlant.updateAll();
     fakePlant.printAll();
     Serial.println("");
-    printPlantDelay.start(30 * 1000); //every thirty seconds
+    printPlantDelay.start(1000 * 30); //every thirty seconds
   }
 
   //If the plant doesn't have enough water, water it and wait 10 minutes to see if it needs more water
@@ -236,12 +241,13 @@ void waitDelay(int time) {
   }
 
 void postRequest(){
+  fakePlant.updateAll();
   String jString = "{\"soilWaterLevel\":" + String(fakePlant.soilWaterLevel) + ",\"lightLevel\":" + String(fakePlant.lightLevel) + ",\"humidityLevel\":" + String(fakePlant.humidityLevel) + ",\"temperature\":" + String(fakePlant.temperature) + "}";
   
-  Serial.print("JSON string to be sent");
+  Serial.print("JSON string to be sent: ");
   Serial.println(jString);
   
-  http.begin(wifiClient, "http://happa-26-backend.an.r.appspot.com/plantStats/wdNtSRStxaQU9gc2QWM7");
+  http.begin(wifiClient, "http://happa-26-backend.an.r.appspot.com/plantStats/GmCI6Z4nf90l6etM4NmL");
   http.addHeader("Content-Type", "application/json");
 
   int httpCode = http.POST(jString);
@@ -280,7 +286,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
 void mqttLogic(String topic, String msg){
 
-  if(topic == "light/request") {
+  if(topic == "light/GmCI6Z4nf90l6etM4NmL/request") {
     if(msg == "1"){
       fakePlant.lightOn();
     } 
@@ -288,7 +294,7 @@ void mqttLogic(String topic, String msg){
     if(msg == "0"){
       fakePlant.lightOff();
     }  
-  }else if (topic == "water/request"){
+  }else if (topic == "water/GmCI6Z4nf90l6etM4NmL/request"){
     if(msg == "1"){
       fakePlant.water();
     } 
@@ -296,25 +302,26 @@ void mqttLogic(String topic, String msg){
 }
 
 void mqttConnect(){
-  mqttClient.setServer("192.168.10.79", 1883);
+  mqttClient.setServer("hairdresser.cloudmqtt.com", 16484);
   //Set callback function for recieved MQTT messages
   mqttClient.setCallback(mqttCallback);
   //Establish connection
 
   waitDelay(100);
-  if (mqttClient.connect("Thom-happa")) {
+  if (mqttClient.connect("Thom-happa", "zabazjfs", "YgpLm5xPCxBY")) {
     // connection succeeded
     Serial.println("Connected to MQTT Broker");
     boolean r= mqttClient.subscribe("mikako/happa/test");
-    mqttClient.subscribe("light/request");
+    mqttClient.subscribe("light/GmCI6Z4nf90l6etM4NmL/request");
     Serial.println("Subscribed to mikako/happa/test");
 
   } 
   else {
     // connection failed
+    Serial.print("Error code: ");
     Serial.println(mqttClient.state());
     // will provide more information
     // on why it failed.
-    Serial.println("Connection failed ");
+    Serial.println("MQTT Connection failed ");
   }
 }
