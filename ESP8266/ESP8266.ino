@@ -3,10 +3,11 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <PubSubClient.h>
+#include <millisDelay.h>
 #include <ArduinoJson.h>
+#include "credentials.h"
 
-// ****************************************************** Fixed values
-// Sensors
+// Fixed values
 #define DHT_PIN D3
 #define PUMP_POWER_PIN D5
 #define LIGHT_POWER_PIN D6
@@ -15,30 +16,12 @@
 DHT dht(DHT_PIN, DHTTYPE);
 Adafruit_ADS1115 analogChip;
 
-// WiFi
-// Code Chrysalis
-#define WIFI_SSID "codechrysalis_2.4ghz"
-#define WIFI_PASS "foreverbekind"
-// Home
-// #define WIFI_SSID "ASUS_D0"
-// #define WIFI_PASS "FFFFFFFFFF1"
+const int printStatusInterval = 1000 * 60;
+const int postStatusInterval = 1000 * 60 * 60;
+const int mqttConnectionInterval = 1000 * 60 * 5;
+const int mqttPublishInterval = 1000 * 60 * 10;
 
-// HTTP
-const String URL = "https://happa-26-backend.an.r.appspot.com/plantStats/";
-const String PLANT_ID = "LKZvyihQuUbrszjk1h1u";
-
-// MQTT
-//#define MQTT_SERVER "192.168.10.78"
-#define MQTT_SERVER "https://happa-26-mqtt.an.r.appspot.com"
-
-#define TOPIC_TEST "mikako/happa/test"
-#define TOPIC_THOMAS "thom/happa/test"
-#define TOPIC_LIGHT "light/request"
-
-#define DEVICE_NAME "Mikako-happa"
-#define TIME_BETWEEN_MESSAGES 1000 * 5
-
-// ************************************************************* Class
+// Plant class
 class Plant {
 public:
   int lightLevel = 0;
@@ -46,7 +29,6 @@ public:
   float temperature = 0.0;
   float humidityLevel = 0.0;
 
-  // Update values
   void updateLightLevel() {
     lightLevel = analogChip.readADC_SingleEnded(0);
   }
@@ -63,21 +45,21 @@ public:
     humidityLevel = dht.readHumidity();
   }
 
-  // Read values
-  int getLightLevel() {
-    return lightLevel;  
+  const char* writeBrightness(String input) {
+    int brightness = input == "1" ? 255 : 0;
+    const char* status = brightness ? "on" : "off";
+    
+    analogWrite(LED_PIN, brightness);
+    Serial.println("[sensor] Brightness: " + String(brightness));
+    return status;
   }
 
-  int getSoilWaterLevel() {
-    return soilWaterLevel;  
-  }
+  void water() {
+    digitalWrite(PUMP_POWER_PIN, HIGH);
+    delay(2000);
+    digitalWrite(PUMP_POWER_PIN, LOW);
 
-  int getTemperature() {
-    return temperature;  
-  }
-
-  int getHumidityLevel() {
-    return humidityLevel;  
+    Serial.println("[sensor] Finished watering plant");
   }
 
   void updateAll() {
@@ -85,15 +67,6 @@ public:
     updateLightLevel();
     updateHumidityLevel();
     updateTemperature();
-  }
-
-  // Change brightness
-  void writeLedBrightness(String input) {
-    // int brightness = 255 / 100 * input;
-    int brightness = input == "1" ? 255 : 0;
-
-    Serial.println("[sensor] Brightness: " + String(brightness));
-    analogWrite(LED_PIN, brightness);
   }
 
   void printAll() {
@@ -104,60 +77,41 @@ public:
   }
 };
 
-// *********************************************** Instances/variables
-Plant plantTest;
+// Instances
+Plant happa;
 WiFiClient wifiClient;
 HTTPClient http;
 PubSubClient mqttClient(wifiClient);
 
-unsigned long lastMsg = 0;
-int value = 0;
+millisDelay printStatusDelay;
+millisDelay postStatusDelay;
+millisDelay mqttConnectionDelay;
+millisDelay mqttPublishDelay;
 
-// ************************************************************** MAIN
+// Main
 void setup() {
   Serial.begin(115200);
-  Serial.println("-------------- SET UP START --------------");  
-  
-  // Sensors
-  pinMode(BUILTIN_LED, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  dht.begin();
-  setupAnalogChip();
-  
-  // WiFi
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  setUpWiFi();
-  
-  // HTTP
-  setupHTTP();
-  
-  // MQTT
-  mqttClient.setServer(MQTT_SERVER, 1883);
-  mqttClient.setCallback(callback);
-  setupMQTT();
-  subscribeTopics();
+  Serial.println("------------ SET UP START ------------");  
 
-  Serial.println("--------------- SET UP END ---------------");
+  setupDelays();
+  setupSensors();
+  setUpWiFi();
+  setupHTTP();
+  setupMQTT();
+
+  Serial.println("------------- SET UP END -------------");
 }
 
 void loop() {
-  // Sensors
-  plantTest.updateAll();
-  plantTest.printAll();
+  checkPrintStatusDelay();
+  checkPostStatusDelay();
+  checkMqttConnectionDelay();
+  checkMqttPublishDelay();
 
-  // HTTP
-  // postRequest();
-  // delay(300000);  // 5 mins
-
-  // MQTT
-  // message();
-  publishMessage();
   mqttClient.loop();
-
-//  waitDelay(2000);
 }
 
-// ********************************************************* Functions
+// Functions
 void waitDelay(int time) {
   delay(time);
   Serial.print(".");
@@ -169,7 +123,22 @@ void waitDelay(int time) {
   Serial.println();
 }
 
-// ********************************************** Set up
+// Set up
+void setupDelays() {
+  printStatusDelay.start(1000);
+  postStatusDelay.start(1000);
+  mqttConnectionDelay.start(100);
+  mqttPublishDelay.start(100);
+}
+
+void setupSensors() {
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(PUMP_POWER_PIN, OUTPUT);
+  digitalWrite(PUMP_POWER_PIN, LOW);
+  dht.begin();
+  setupAnalogChip();
+}
+
 void setupAnalogChip() {
   if (!analogChip.begin()) {
     Serial.println("[sensor] Failed to initialize analogChip.");
@@ -178,6 +147,8 @@ void setupAnalogChip() {
 }
 
 void setUpWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
   while (WiFi.status() != WL_CONNECTED) {
     waitDelay(200);
   }
@@ -186,71 +157,122 @@ void setUpWiFi() {
 }
 
 void setupHTTP() {
-  http.begin(wifiClient, URL + PLANT_ID);
+  http.begin(wifiClient, String(URL) + String(PLANT_ID));
   http.addHeader("Content-Type", "application/json");
 }
 
 void setupMQTT() {
-  Serial.println("[MQTT] connecting MQTT...");
-  waitDelay(200);
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+  mqttClient.setCallback(callback);
 
-  if (!mqttClient.connect(DEVICE_NAME)) {
+  Serial.println("[MQTT] connecting MQTT...");
+  if (!mqttClient.connect(PLANT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
     reconnectMQTT();
   }
 
-  Serial.println("[MQTT] connected to MQTT with device: " + String(DEVICE_NAME));
+  Serial.println("[MQTT] connected to MQTT with device: " + String(PLANT_ID));
+  subscribeTopics();
 }
 
-// ************************************************ HTTP
-// void postRequest() {
-//   int httpCode = sendPostRequest();
+// Check delays
+void checkPrintStatusDelay() {
+  if (!printStatusDelay.justFinished()) return;
 
-//   if (httpCode) {
-//     Serial.printf("[HTTP] POST status code: %d\n", httpCode);
-//     if (httpCode >= 200 && httpCode < 300) {
-//       const String& payload = http.getString();
-//       Serial.println("[HTTP] received payload:\n<<" + payload + ">>\n");
-//     }
-//   } else {
-//     Serial.printf("[HTTP] POST error: %s\n", http.errorToString(httpCode).c_str());
-//   }
+  printPlantStatus();
+  printStatusDelay.start(printStatusInterval);
+  Serial.println("");
+}
 
-//   http.end();
-// }
+void checkPostStatusDelay() {
+  if (!postStatusDelay.justFinished()) return;
 
-// int sendPostRequest() {
-//   String sensorData = buildJSON();
-//   int httpCode = http.POST(sensorData);
-//   return httpCode;
-// }
+  postPlantStatus();
+  postStatusDelay.start(postStatusInterval);
+  Serial.println("");
+}
 
-// String buildJSON() {
-//   String sensorData = "{\"soilWaterLevel\":" + String(plantTest.soilWaterLevel)
-//                       + ",\"lightLevel\":" + String(plantTest.lightLevel)
-//                       + ",\"humidityLevel\":" + String(plantTest.humidityLevel)
-//                       + ",\"temperature\":" + String(plantTest.temperature)
-//                       + "}";
-//   Serial.println("[HTTP] JSON to be sent : " + sensorData);
-//   return sensorData;
-// }
+void checkMqttConnectionDelay() {
+  if (!mqttConnectionDelay.justFinished()) return;
 
-// ************************************************ MQTT
+  if (!mqttClient.connect(PLANT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
+    reconnectMQTT();
+  }
+  mqttConnectionDelay.start(mqttConnectionInterval);
+  Serial.println("");
+}
+
+void checkMqttPublishDelay() {
+  if (!mqttPublishDelay.justFinished()) return;
+
+  publishMessage(TOPIC_DEVICE, PLANT_ID);
+  mqttPublishDelay.start(mqttPublishInterval);
+  Serial.println("");
+}
+
+// Sensors
+void printPlantStatus() {
+  happa.updateAll();
+  happa.printAll();
+}
+
+// HTTP
+void postPlantStatus() {
+  int httpCode = sendPostRequest();
+
+  if (httpCode) {
+    Serial.printf("[HTTP] POST status code: %d\n", httpCode);
+    if (httpCode >= 200 && httpCode < 300) {
+      const String& payload = http.getString();
+      Serial.println("[HTTP] received payload:\n<<" + payload + ">>\n");
+    }
+  } else {
+    Serial.printf("[HTTP] POST error: %s\n", http.errorToString(httpCode).c_str());
+  }
+
+  http.end();
+}
+
+int sendPostRequest() {
+  String sensorData = buildJSON();
+  int httpCode = http.POST(sensorData);
+  return httpCode;
+}
+
+String buildJSON() {
+  String sensorData = "{\"soilWaterLevel\":" + String(happa.soilWaterLevel)
+                      + ",\"lightLevel\":" + String(happa.lightLevel)
+                      + ",\"humidityLevel\":" + String(happa.humidityLevel)
+                      + ",\"temperature\":" + String(happa.temperature)
+                      + "}";
+  Serial.println("[HTTP] JSON to be sent : " + sensorData);
+  return sensorData;
+ }
+
+// MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println("[MQTT] message received from topic: " + String(topic));
 
-  String msg = "";
+  String message = "";
   for (int i = 0; i < length; i++) {
-    msg += (char)payload[i];
+    message += (char)payload[i];
   }
 
-  Serial.println(msg);
-  if (String(topic) == String(TOPIC_LIGHT)) {
-    plantTest.writeLedBrightness(msg);
+  Serial.println(message);
+  checkTopics(String(topic), message);
+}
+
+void checkTopics(String topic, String message) {
+  if (topic == String(TOPIC_LIGHT_req)) {
+    const char* status = happa.writeBrightness(message);
+    publishMessage(TOPIC_LIGHT_res, status);
+  } else if (topic == String(TOPIC_WATER_req)) {
+    happa.water();
+    publishMessage(TOPIC_WATER_res, "done");
   }
 }
 
 void reconnectMQTT() {
-  while (!mqttClient.connect(DEVICE_NAME)) {
+  while (!mqttClient.connect(PLANT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
     mqttClient.state();
     Serial.println("[MQTT] connection failed");
     Serial.println("[MQTT] reconnecting");
@@ -259,19 +281,28 @@ void reconnectMQTT() {
 }
 
 void subscribeTopics() {
-//  boolean status_test = mqttClient.subscribe(TOPIC_THOMAS);
-  boolean status_light = mqttClient.subscribe(TOPIC_LIGHT);
+  int status_light = mqttClient.subscribe(TOPIC_LIGHT_req);
+  int status_water = mqttClient.subscribe(TOPIC_WATER_req);
   
-  if (status_light) {
-//    Serial.println("[MQTT] subscribed to: " + String(TOPIC_THOMAS));
-    Serial.println("[MQTT] subscribed to: " + String(TOPIC_LIGHT));
+  if (status_light && status_water) {
+    Serial.println("[MQTT] subscribed to: " + String(TOPIC_LIGHT_req));
+    Serial.println("[MQTT] subscribed to: " + String(TOPIC_WATER_req));
   } else {
     Serial.println("[MQTT] subscribe failed");
+    reconnectMQTT();
+    subscribeTopics();
   }
 }
 
-void publishMessage() {
-  Serial.println("[MQTT] publishing topic: " + String(TOPIC_TEST));
-  mqttClient.publish(TOPIC_TEST, "---------------mikako/happa/test----------------");
+void publishMessage(char* topic, const char* message) {
+  boolean status = mqttClient.publish(topic, message);
+    
+  if (status) {
+    Serial.println("[MQTT] published topic: " + String(topic));
+  } else {
+    Serial.println("[MQTT] publish failed");
+    reconnectMQTT();
+  }
+
   waitDelay(200);
 }
