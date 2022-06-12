@@ -12,3 +12,5 @@ yarn-debug.log*
 yarn-error.log*
 
 ./ESP8266/credentials.h
+/ESP8266/credentials.h
+ESP8266/credentials.h
