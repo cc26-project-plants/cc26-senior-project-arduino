@@ -11,11 +11,11 @@ You can find more details [here](https://github.com/cc26-project-plants/cc26-sen
 ### Software
 - C++  
 - [Arduino](https://www.arduino.cc/)  
-- [ESP8266](http://esp8266.net/)  
 - [MQTT](https://mqtt.org/)
 - [CloudMQTT](https://www.cloudmqtt.com/)
   
 ### Hardware components
+- [ESP8266](http://esp8266.net/)  
 - Photoresistor
 - Soil moisture sensor
 - Temperature and humidity sensor
