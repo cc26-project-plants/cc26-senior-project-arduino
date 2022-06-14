@@ -1,24 +1,3 @@
-# dependencies
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-
-# vercel
-.vercel
-
-# misc
 .DS_Store
 .vscode/
 .env
@@ -31,3 +10,7 @@ yarn-error.log*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+./ESP8266/credentials.h
+/ESP8266/credentials.h
+ESP8266/credentials.h
