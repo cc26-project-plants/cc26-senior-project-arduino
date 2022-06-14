@@ -18,7 +18,7 @@ Adafruit_ADS1115 analogChip;
 
 const int printStatusInterval = 1000 * 60;
 const int postStatusInterval = 1000 * 60 * 60;
-const int mqttConnectionInterval = 1000 * 60 * 5;
+const int mqttConnectionInterval = 1000 * 5;
 const int mqttPublishInterval = 1000 * 60 * 10;
 
 // Plant class
@@ -45,13 +45,17 @@ public:
     humidityLevel = dht.readHumidity();
   }
 
-  const char* writeBrightness(String input) {
+  void writeBrightness(String input) {
     int brightness = input == "1" ? 255 : 0;
-    const char* status = brightness ? "on" : "off";
+
+    if (brightness) {
+      digitalWrite(LIGHT_POWER_PIN, HIGH);
+    } else {
+      digitalWrite(LIGHT_POWER_PIN, LOW);
+    }
     
     analogWrite(LED_PIN, brightness);
     Serial.println("[sensor] Brightness: " + String(brightness));
-    return status;
   }
 
   void water() {
@@ -98,17 +102,18 @@ void setup() {
   setUpWiFi();
   setupHTTP();
   setupMQTT();
+  subscribeTopics();
 
   Serial.println("------------- SET UP END -------------");
 }
 
 void loop() {
+  mqttClient.loop();
+  
   checkPrintStatusDelay();
   checkPostStatusDelay();
   checkMqttConnectionDelay();
   checkMqttPublishDelay();
-
-  mqttClient.loop();
 }
 
 // Functions
@@ -133,7 +138,9 @@ void setupDelays() {
 
 void setupSensors() {
   pinMode(LED_PIN, OUTPUT);
+  pinMode(LIGHT_POWER_PIN, OUTPUT);
   pinMode(PUMP_POWER_PIN, OUTPUT);
+  digitalWrite(LIGHT_POWER_PIN, LOW);
   digitalWrite(PUMP_POWER_PIN, LOW);
   dht.begin();
   setupAnalogChip();
@@ -177,6 +184,7 @@ void setupMQTT() {
 // Check delays
 void checkPrintStatusDelay() {
   if (!printStatusDelay.justFinished()) return;
+  Serial.println("--- delay --- print plant status");
 
   printPlantStatus();
   printStatusDelay.start(printStatusInterval);
@@ -185,6 +193,7 @@ void checkPrintStatusDelay() {
 
 void checkPostStatusDelay() {
   if (!postStatusDelay.justFinished()) return;
+  Serial.println("--- delay --- post plant status");
 
   postPlantStatus();
   postStatusDelay.start(postStatusInterval);
@@ -193,6 +202,7 @@ void checkPostStatusDelay() {
 
 void checkMqttConnectionDelay() {
   if (!mqttConnectionDelay.justFinished()) return;
+  Serial.println("--- delay --- checking connection");
 
   if (!mqttClient.connect(PLANT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
     reconnectMQTT();
@@ -203,6 +213,7 @@ void checkMqttConnectionDelay() {
 
 void checkMqttPublishDelay() {
   if (!mqttPublishDelay.justFinished()) return;
+  Serial.println("--- delay --- publish topic");
 
   publishMessage(TOPIC_DEVICE, PLANT_ID);
   mqttPublishDelay.start(mqttPublishInterval);
@@ -246,10 +257,11 @@ String buildJSON() {
                       + "}";
   Serial.println("[HTTP] JSON to be sent : " + sensorData);
   return sensorData;
- }
+}
 
 // MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.println("____");
   Serial.println("[MQTT] message received from topic: " + String(topic));
 
   String message = "";
@@ -258,14 +270,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   Serial.println(message);
-  checkTopics(String(topic), message);
+  checkTopics(topic, message);
 }
 
-void checkTopics(String topic, String message) {
-  if (topic == String(TOPIC_LIGHT_req)) {
-    const char* status = happa.writeBrightness(message);
-    publishMessage(TOPIC_LIGHT_res, status);
-  } else if (topic == String(TOPIC_WATER_req)) {
+void checkTopics(char* topic, String message) {
+  if (topic == TOPIC_LIGHT_req) {
+    happa.writeBrightness(message);
+    if (message == "1") {
+      publishMessage(TOPIC_LIGHT_res, "on");
+    } else {
+      publishMessage(TOPIC_LIGHT_res, "off");
+    }
+  } else if (topic == TOPIC_WATER_req) {
     happa.water();
     publishMessage(TOPIC_WATER_res, "done");
   }
@@ -282,11 +298,11 @@ void reconnectMQTT() {
 
 void subscribeTopics() {
   int status_light = mqttClient.subscribe(TOPIC_LIGHT_req);
-  int status_water = mqttClient.subscribe(TOPIC_WATER_req);
+  // int status_water = mqttClient.subscribe(TOPIC_WATER_req);
   
-  if (status_light && status_water) {
+  if (status_light) {
     Serial.println("[MQTT] subscribed to: " + String(TOPIC_LIGHT_req));
-    Serial.println("[MQTT] subscribed to: " + String(TOPIC_WATER_req));
+    // Serial.println("[MQTT] subscribed to: " + String(TOPIC_WATER_req));
   } else {
     Serial.println("[MQTT] subscribe failed");
     reconnectMQTT();
@@ -294,7 +310,7 @@ void subscribeTopics() {
   }
 }
 
-void publishMessage(char* topic, const char* message) {
+void publishMessage(const char* topic, const char* message) {
   boolean status = mqttClient.publish(topic, message);
     
   if (status) {

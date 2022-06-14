@@ -34,4 +34,7 @@ You can find more details [here](https://github.com/cc26-project-plants/cc26-sen
   
     
 ### Project Structure
-![architecture](https://github.com/mikako-shirai/dump/blob/master/diagram.png)  
+#### Architecture
+![Architecture](https://github.com/mikako-shirai/dump/blob/master/cc26-senior-project/architecture.png)  
+#### Tech Stack
+![Tech Stack](https://github.com/mikako-shirai/dump/blob/master/cc26-senior-project/tech_stack.png)  
